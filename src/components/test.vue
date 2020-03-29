@@ -7,7 +7,7 @@
                 <video width="320" height="320" ref="videoDom" id="video_cam" preload autoplay loop muted></video>
                 <canvas width="320" height="320" ref="canvasDOM" id="face_detect"></canvas>
                 <div class="control-btn"></div>
-                <button type="button" name="button" @click="openCamera">点击我拍照</button>
+<!--                <button type="button" name="button" @click="registerface">注册人脸</button>-->
             </div>
             <div class="images-wrp sec">
                 <!-- <p class="title is-5">Image taken</p> -->
@@ -22,10 +22,12 @@
     </div>
 </template>
 <script>
+    import {recognizeOCR, registerFace, requestverify} from "@/api";
 export default {
     name: 'facelogin',
     data() {
         return {
+            tracktask:'',
             count: 0,
             isdetected: '请您保持脸部在画面中央',
             videoEl: {},
@@ -74,13 +76,15 @@ export default {
 // The getUserMedia interface is used for handling camera input.
 // Some browsers need a prefix so here we're covering all the options
         navigator.getMedia =
-            navigator.getUserMedia ||
+            navigator.getUserMedia||
             navigator.webkitGetUserMedia ||
             navigator.mozGetUserMedia ||
             navigator.msGetUserMedia
+
         this.init()
     },
     methods: {
+
         openCamera () {
 
             var video = document.getElementById('video_cam');
@@ -135,6 +139,7 @@ export default {
         },
 
 
+
         onTrackTracking() {
             const context = this
             const video = this.videoEl
@@ -143,49 +148,91 @@ export default {
             let tracker = new tracking.ObjectTracker('face')
 
 
+            function dataURLtoFile(dataurl, filename) {
+                var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new File([u8arr], filename, {type: mime});
+            }
             video.pause()
             video.src = ''
             tracker.setInitialScale(4)
             tracker.setStepSize(2)
             tracker.setEdgesDensity(0.1)
-            tracking.track('#video_cam', tracker, {camera: true})
+             var tracktask=tracking.track('#video_cam', tracker, {camera: true})
+            let flag=true
             tracker.on('track', function (event) {
                 const {autoCaptureTrackTraking} = context
                 canvasContext.clearRect(0, 0, canvas.width, canvas.height)
                 event.data.forEach(function ({x, y, width, height}) {
+
+
                     canvasContext.strokeStyle = '#a64ceb'
                     canvasContext.strokeRect(x, y, width, height)
                     canvasContext.font = '11px Helvetica'
                     canvasContext.fillStyle = '#fff'
-                })
+                //     context.isdetected = '已检测到人脸，正在登录'
+                //     canvasContext.drawImage(video, 0, 0, 320, 320);
+                //
+                //
+                //     var snapData = canvas.toDataURL('image/jpeg',1.0)
+                //
+                //     var file=dataURLtoFile(snapData,'user.png')
+                //     var formData = new FormData();
+                //     formData.append("file", file);
+                //
+                //     registerFace(formData).then(res => {
+                //         if(res.error_msg=='SUCCESS'){
+                //          alert('成功')
+                //
+                //         }else{
+                //            alert('失败')
+                //
+                //         }
+                //
+                //     // var imgSrc = "data:image/png;" + snapData;
+                //     // const a = document.createElement('a')
+                //     // a.href = snapData
+                //     // a.setAttribute('download', 'chart-download')
+                //     // a.click()
+                //
+                //
+                // })
 
-
-                if (event.data!=null && context.count <= 10) {
-                    if (context.count < 0) context.count = 0
-                    context.count += 1
-//debugHelper.log(context.count)
-                    if (context.count > 10) {
+            })
+                if (event.data.length) {
+                    // 会不停的去检测人脸，所以这里需要做个锁
+                    if (flag) {
+                        // 裁剪出人脸并绘制下来
                         context.isdetected = '已检测到人脸，正在登录'
                         canvasContext.drawImage(video, 0, 0, 320, 320);
 
-                        var snapData = canvas.toDataURL('image/jpeg',1.0)
-                        // var imgSrc = "data:image/png;" + snapData;
-                        const a = document.createElement('a')
-                        a.href = snapData
-                        a.setAttribute('download', 'chart-download')
-                        a.click()
-                        this.stopMediaStreamTrack()
-//context.$router.push({ name: 'pwdlogin' })
+                        flag = false
+                        var snapData = canvas.toDataURL('image/jpeg', 1.0)
+
+                        var file = dataURLtoFile(snapData, 'user.png')
+                        var formData = new FormData();
+                        formData.append("file", file);
+
+                        registerFace(formData).then(res => {
+                            if (res.error_msg == 'SUCCESS') {
+                                alert('成功')
+                               //
+                            } else {
+                                alert('失败')
+                            }
+                        })
                     }
-                } else {
-                    context.count -= 1
-                    if (context.count < 0) context.isdetected = '请您保持脸部在画面中央'
-//this.isdetected = '已检测到人脸，正在登录'
                 }
 
-            })
+
+
+
+        })
         },
-        onDownloadFile(item) {
+        onDownloadFile(item){
             const link = document.createElement('a')
             link.href = item
             link.download = `cahyo-${new Date().toISOString()}.png`
