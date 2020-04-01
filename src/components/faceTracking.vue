@@ -6,6 +6,7 @@
         <div class="buttonDiv">
             <button type="button" @click="submit">上传照片</button>
             <button type="button" name="button" @click="openCamera">点击我拍照</button>
+            <OBJECT ID="EloamGlobal_ID" CLASSID="CLSID:52D1E686-D8D7-4DF2-9A74-8B8F4650BF73"></OBJECT>
         </div>
     </div>
 </template>

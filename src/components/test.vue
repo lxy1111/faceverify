@@ -113,6 +113,21 @@ export default {
         async init() {
             this.videoEl = this.$refs.videoDom
             this.canvasEL = this.$refs.canvasDOM
+            EloamGlobal = document.getElementById("EloamGlobal_ID");
+            //EloamGlobal.GetKeyFromSoftDog(20);
+            var ret;
+            ret = EloamGlobal.InitDevs();
+            if(ret)
+            {
+                if(!EloamGlobal.VideoCapInit())
+                {
+                    alert("初始化录像失败");
+                }
+                //进行人脸识别初始化时，视频应处于关闭状态
+                initFaceDetectSuccess = EloamGlobal.InitFaceDetect();
+            }
+            hasLoadSuccess = 1;
+
             await navigator.mediaDevices
                 .getUserMedia(this.userMediaConstraints)
                 .then(this.getMediaStreamSuccess)
